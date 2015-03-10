@@ -1,0 +1,79 @@
+gcc -g -Wall -Wextra -c CatalogoClientes.c -o CatalogoClientes.o
+CatalogoClientes.c: In function ‘insert’:
+CatalogoClientes.c:113:11: warning: suggest explicit braces to avoid ambiguous ‘else’ [-Wparentheses]
+         if( height( t->left ) - height( t->right ) == 2 )
+           ^
+CatalogoClientes.c:121:11: warning: suggest explicit braces to avoid ambiguous ‘else’ [-Wparentheses]
+         if( height( t->right ) - height( t->left ) == 2 )
+           ^
+gcc -g -Wall -Wextra -c CatalogoProdutos.c -o CatalogoProdutos.o
+CatalogoProdutos.c: In function ‘dispose1’:
+CatalogoProdutos.c:27:9: warning: implicit declaration of function ‘dispose’ [-Wimplicit-function-declaration]
+         dispose( t->left );
+         ^
+CatalogoProdutos.c: In function ‘find1’:
+CatalogoProdutos.c:36:9: warning: implicit declaration of function ‘find’ [-Wimplicit-function-declaration]
+         return find( e, t->left );
+         ^
+CatalogoProdutos.c:36:9: warning: return makes pointer from integer without a cast [enabled by default]
+CatalogoProdutos.c:38:9: warning: return makes pointer from integer without a cast [enabled by default]
+         return find( e, t->right );
+         ^
+CatalogoProdutos.c: In function ‘find_min1’:
+CatalogoProdutos.c:48:9: warning: implicit declaration of function ‘find_min’ [-Wimplicit-function-declaration]
+         return find_min( t->left );
+         ^
+CatalogoProdutos.c:48:9: warning: return makes pointer from integer without a cast [enabled by default]
+CatalogoProdutos.c: In function ‘insert1’:
+CatalogoProdutos.c:112:9: warning: implicit declaration of function ‘insert’ [-Wimplicit-function-declaration]
+         t->left = insert( e, t->left );
+         ^
+CatalogoProdutos.c:112:17: warning: assignment makes pointer from integer without a cast [enabled by default]
+         t->left = insert( e, t->left );
+                 ^
+CatalogoProdutos.c:113:11: warning: suggest explicit braces to avoid ambiguous ‘else’ [-Wparentheses]
+         if( height1( t->left ) - height1( t->right ) == 2 )
+           ^
+CatalogoProdutos.c:120:18: warning: assignment makes pointer from integer without a cast [enabled by default]
+         t->right = insert( e, t->right );
+                  ^
+CatalogoProdutos.c:121:11: warning: suggest explicit braces to avoid ambiguous ‘else’ [-Wparentheses]
+         if( height1( t->right ) - height1( t->left ) == 2 )
+           ^
+CatalogoProdutos.c: In function ‘insere_produto’:
+CatalogoProdutos.c:149:23: warning: assignment makes pointer from integer without a cast [enabled by default]
+     arr[id1][id2].tree=insert(num, arr[id1][id2].tree);
+                       ^
+gcc -g -Wall -Wextra -c Compras.c -o Compras.o
+Compras.c: In function ‘get_Cliente’:
+Compras.c:47:24: warning: operation on ‘r’ may be undefined [-Wsequence-point]
+         if (r->next) r = r=r->next;
+                        ^
+Compras.c: In function ‘get_Prod’:
+Compras.c:78:24: warning: operation on ‘r’ may be undefined [-Wsequence-point]
+         if (r->next) r = r=r->next;
+                        ^
+Compras.c: In function ‘set_Prod’:
+Compras.c:87:74: warning: unused parameter ‘id’ [-Wunused-parameter]
+ struct HashTable* set_Prod(struct HashTable* prod, char* codProduto, int id, int found){
+                                                                          ^
+gcc -g -Wall -Wextra -c Contabilidade.c -o Contabilidade.o
+gcc -g -Wall -Wextra -c main.c -o main.o
+main.c: In function ‘validarCompra’:
+main.c:131:8: warning: unused variable ‘j’ [-Wunused-variable]
+    int j=0;
+        ^
+main.c:130:8: warning: unused variable ‘i’ [-Wunused-variable]
+    int i=0;
+        ^
+main.c: In function ‘main’:
+main.c:195:14: warning: unused variable ‘j’ [-Wunused-variable]
+     int i=0, j=0;
+              ^
+main.c:191:14: warning: unused parameter ‘argc’ [-Wunused-parameter]
+ int main(int argc, char** argv) {
+              ^
+main.c:191:27: warning: unused parameter ‘argv’ [-Wunused-parameter]
+ int main(int argc, char** argv) {
+                           ^
+gcc  CatalogoClientes.o  CatalogoProdutos.o  Compras.o  Contabilidade.o  main.o   -o app
