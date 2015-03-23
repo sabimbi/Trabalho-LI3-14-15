@@ -8,13 +8,9 @@
       <in>CatalogoProdutos.h</in>
       <in>Compras.c</in>
       <in>Compras.h</in>
-      <in>Contabilidade (mesas-Satellite-A200's conflict 2015-03-08).c</in>
-      <in>Contabilidade (mesas-Satellite-A200's conflict 2015-03-08).h</in>
       <in>Contabilidade.c</in>
       <in>Contabilidade.h</in>
-      <in>main (mesas-Satellite-A200's conflict 2015-03-08).c</in>
       <in>main.c</in>
-      <in>teste.c</in>
     </df>
   </logicalFolder>
   <projectmakefile>makefile</projectmakefile>
@@ -55,11 +51,13 @@
       </nativedebugger>
       <runprofile version="9">
         <runcommandpicklist>
+          <runcommandpicklistitem> make clean &amp;&amp; "${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>make clean &amp;&amp; make &amp;&amp; "${OUTPUT_PATH}"</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
         </runcommandpicklist>
         <runcommand>"${OUTPUT_PATH}"</runcommand>
         <rundir>.</rundir>
-        <buildfirst>false</buildfirst>
+        <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>
         <remove-instrumentation>0</remove-instrumentation>
         <environment>

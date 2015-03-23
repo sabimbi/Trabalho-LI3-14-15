@@ -1,0 +1,17 @@
+#ifndef CONTABILIDADE_H
+#define	CONTABILIDADE_H
+
+/*Matriz Anos-Tipo de Venda*/
+typedef struct Array **Info;
+/*Array de Apontadores*/
+typedef struct HashTable **Contabilidade, *Field;
+
+
+Contabilidade init_Contabilidade(Contabilidade table);
+Contabilidade insert_Contabilidade(Contabilidade table, char* codProduto, int mes, char prom, int qnt, float fac);
+void get_NP_byMonth(Contabilidade cont, char* codProduto, int mes, int* totN, int* facN, int* totP, int*facP);
+int get_nproducts_with_noBuyers(Contabilidade table);
+void get_total_byMonths(Contabilidade table, int mes1, int mes2,int* totC, float* totF);
+
+#endif	/* CONTABILIDADE_H */
+

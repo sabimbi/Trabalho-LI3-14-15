@@ -1,0 +1,14 @@
+Query1:100%
+Query2:100%
+Query3:100%
+Query4:100%
+Query5:0%
+Query6:100%
+Query7:100%
+Query8:(100%)(falta imprimir numeros respectivos e navegação)
+Query9:0%
+Query10:100%(preciso optimizar)
+Query11:0%
+Query12:0%
+Query13:0%
+Query14:0%

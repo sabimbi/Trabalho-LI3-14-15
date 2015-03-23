@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include<math.h>
+
 #include "Contabilidade.h"
-#define TABLE_SIZE 50001
+#define TABLE_SIZE 200001
 
 #undef get16bits
 #if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) \
@@ -18,31 +18,32 @@
 #endif
 
 /* Estrutura interna */
- struct info {
+struct Array{
     int quantidade;
     float facturacao;
 };
-
-struct conta{
-    Info info;
-};
-struct HashTable {
+struct HashTable{
     char* codProduto;
-    Conta*arr;
-    int height;
-    struct HashTable* left, *right;
+    Info arr;
+    struct HashTable* next;
 };
-
-struct contabilidade {
-    Field *produtos;
-};
-
-
 /* Variavel global da estutura */
 
-static uint32_t SuperFastHash(const char * data, int len) {
-    uint32_t hash = len, tmp;
-    int rem;
+static char *strdup2(char *str){
+int len=0,i=0;
+char *aux=NULL;
+len=strlen(str)+1;
+aux=malloc(len*sizeof(char));
+for(i=0;str[i]!='\0';i++){
+    aux[i]=str[i];
+}
+aux[i]='\0';
+
+return aux;
+}
+static uint32_t SuperFastHash (const char * data, int len) {
+uint32_t hash = len, tmp;
+int rem;
 
     if (len <= 0 || data == NULL) return 0;
 
@@ -50,28 +51,28 @@ static uint32_t SuperFastHash(const char * data, int len) {
     len >>= 2;
 
     /* Main loop */
-    for (; len > 0; len--) {
-        hash += get16bits(data);
-        tmp = (get16bits(data + 2) << 11) ^ hash;
-        hash = (hash << 16) ^ tmp;
-        data += 2 * sizeof (uint16_t);
-        hash += hash >> 11;
+    for (;len > 0; len--) {
+        hash  += get16bits (data);
+        tmp    = (get16bits (data+2) << 11) ^ hash;
+        hash   = (hash << 16) ^ tmp;
+        data  += 2*sizeof (uint16_t);
+        hash  += hash >> 11;
     }
 
     /* Handle end cases */
     switch (rem) {
-        case 3: hash += get16bits(data);
-            hash ^= hash << 16;
-            hash ^= ((signed char) data[sizeof (uint16_t)]) << 18;
-            hash += hash >> 11;
-            break;
-        case 2: hash += get16bits(data);
-            hash ^= hash << 11;
-            hash += hash >> 17;
-            break;
-        case 1: hash += (signed char) *data;
-            hash ^= hash << 10;
-            hash += hash >> 1;
+        case 3: hash += get16bits (data);
+                hash ^= hash << 16;
+                hash ^= ((signed char)data[sizeof (uint16_t)]) << 18;
+                hash += hash >> 11;
+                break;
+        case 2: hash += get16bits (data);
+                hash ^= hash << 11;
+                hash += hash >> 17;
+                break;
+        case 1: hash += (signed char)*data;
+                hash ^= hash << 10;
+                hash += hash >> 1;
     }
 
     /* Force "avalanching" of final 127 bits */
@@ -82,192 +83,157 @@ static uint32_t SuperFastHash(const char * data, int len) {
     hash ^= hash << 25;
     hash += hash >> 6;
 
-    return hash % TABLE_SIZE;
+    return hash%TABLE_SIZE;
 }
 
 /*Funções Públicas*/
 
+void get_total_byMonths(Contabilidade table, int mes1, int mes2,int* totC, float* totF){
+    int i, j, k, tC=0; float tF=0.0;
+    struct HashTable* aux=NULL;
+    j=0;
 
-
-static int height(Field n) {
-    if (n == NULL)
-        return -1;
-    else
-        return n->height;
-}
-
-static int max(int l, int r) {
-    return l > r ? l : r;
-}
-
-static Field single_rotate_with_left(Field k2) {
-    Field k1 = NULL;
-
-    k1 = k2->left;
-    k2->left = k1->right;
-    k1->right = k2;
-
-    k2->height = max(height(k2->left), height(k2->right)) + 1;
-    k1->height = max(height(k1->left), k2->height) + 1;
-    return k1; /* new root */
-}
-
-static Field single_rotate_with_right(Field k1) {
-    Field k2 = NULL;
-
-    k2 = k1->right;
-    k1->right = k2->left;
-    k2->left = k1;
-
-    k1->height = max(height(k1->left), height(k1->right)) + 1;
-    k2->height = max(height(k2->right), k1->height) + 1;
-
-    return k2; /* New root */
-}
-
-static Field double_rotate_with_left(Field k3) {
-    k3->left = single_rotate_with_right(k3->left);
-    return single_rotate_with_left(k3);
-}
-
-static Field double_rotate_with_right(Field k1) {
-    k1->right = single_rotate_with_left(k1->right);
-    return single_rotate_with_right(k1);
-}
-
-static Field insert(Field t, char* codProduto, int mes, char prom, int qnt, float fac) {
-
-    int prom1 = 0, i = 0;
-    if (prom == 'P') prom1 = 1;
-    if (t == NULL) {
-        t = (Field) malloc(sizeof (struct HashTable));
-        if (t == NULL) {
-            fprintf(stderr, "Out of memory!!! (insert)\n");
-            exit(1);
-        } else {
-t->height = 0;
-            t->codProduto = strdup(codProduto);
-            t->left = NULL;
-            t->right = NULL;
-            t->arr = (Conta *) malloc(sizeof (Conta)*13);
-            
-                    for(i=0; i<13; i++){
-                        t->arr[i].info=(Info) malloc(2*sizeof(struct info));
-             t->arr[i].info[0].quantidade = 0;
-                t->arr[i].info[0].quantidade = 0;
-                t->arr[i].info[1].facturacao = 0.0;
-                t->arr[i].info[1].facturacao = 0.0;
+    for(i=0; i<TABLE_SIZE; i++){
+        aux=table[i];
+        if(aux!=NULL){
+        while (aux){
+            for(j=mes1; j<=mes2; j++){
+               
+                    for(k=0;k<2;k++){
+                        tC+=aux->arr[j][k].quantidade;
+                        tF+=aux->arr[j][k].facturacao;
+                        }
+                        
                     }
-
-            
-            
-
-
-            t->height = max(height(t->left), height(t->right)) + 1;
-            
-        }
-    }else if (strcmp(codProduto, t->codProduto) < 0) {
-            t->left = insert(t->left, codProduto, mes, prom, qnt, fac);
-            if (abs(height(t->right) - height(t->left)) > 1)
-                if (strcmp(codProduto, t->left->codProduto) < 0)
-                    t = single_rotate_with_left(t);
-                else
-                    t = double_rotate_with_left(t);
-        } else if (strcmp(codProduto, t->codProduto) > 0) {
-            t->right = insert(t->right, codProduto, mes, prom, qnt, fac);
-            if (abs(height(t->right) - height(t->left)) > 1)
-                if (strcmp(codProduto, t->right->codProduto) > 0)
-                    t = single_rotate_with_right(t);
-                else
-                    t = double_rotate_with_right(t);
-        } else {
-            
-                t->arr[mes].info[prom1].facturacao += fac;
-                t->arr[mes].info[prom1].quantidade += qnt;
-                
-            
-        }
-        /* Else X is in the tree already; we'll do nothing */
-        t->height = max(height(t->left), height(t->right)) + 1;
-        return t;
-    }
-static int get_products_tree(Field f){
-    int i,r;
-    if(f!=NULL){
-        for(i=0,r=1;i<13 && r;i++){
-            if((f->arr[i].info[0].quantidade)==0){
-                if((f->arr[i].info[1].quantidade)==0){
-                    
-                }else{
-                    r=0;
+                aux=aux->next;
                 }
-            }else{
-                r=0;
-            }
             
-        }
-        if(r==1){
-            return 1+get_products_tree(f->left)+get_products_tree(f->right);
-        }else{
-           return get_products_tree(f->left)+get_products_tree(f->right); 
-        }
-    }else{
-        return 0;
-    }
-
+            
+}        
 }
-Field get_produto(Contabilidade table,char *codProduto){
-    unsigned id = SuperFastHash(codProduto, strlen(codProduto));
-    Field f=table->produtos[id];
-    while(f!=NULL){
-        if(strcmp(f->codProduto,codProduto)==0){
 
-            
-
-            return f;
-        }else{
-            if(strcmp(f->codProduto,codProduto)<0){
-                f=f->left;
-        }else{
-                f=f->right;
-        }
-        }
-    }
-    return NULL;
+    
+    
+    *totC=tC;
+    *totF=tF;
+    
     
 }
-int get_products_not_bought(Contabilidade table){
-    int i=0,res=0;
-    Field f=NULL;
+Contabilidade init_Contabilidade(){
+    int i;
+    Contabilidade table;
+    table = (Contabilidade) malloc (sizeof(struct HashTable*)*TABLE_SIZE);
     for(i=0;i<TABLE_SIZE;i++){
-        f=table->produtos[i];
-        res+=get_products_tree(f);
+        table[i]=NULL;
     }
-    return res;
+    return table;
 }
-    Contabilidade insert_Contabilidade(Contabilidade table, char* codProduto, int mes, char prom, int qnt, float fac) {
-        unsigned id = SuperFastHash(codProduto, strlen(codProduto));
-
-
-        struct HashTable *f = NULL;
-        f = table->produtos[id];
-        f = insert(f, codProduto, mes, prom, qnt, fac);
-        table->produtos[id] = f;
-        
-        return table;
-        
-    }
-
-    Contabilidade init_Contabilidade() {
-
-        int i;
-        Contabilidade table;
-        table = (Contabilidade) malloc(sizeof (struct contabilidade));
-        table->produtos = (Field *) malloc(TABLE_SIZE * sizeof (struct HashTable *));
-        for (i = 0; i < TABLE_SIZE; i++) {
-            table->produtos[i] = NULL;
+void get_NP_byMonth(Contabilidade cont, char* codProduto, int mes, int* totN, float* facN, int* totP, float*facP){
+    int tN=0, fN=0;float tP=0.0, fP=0.0;
+    unsigned id=SuperFastHash(codProduto, strlen(codProduto));
+    struct HashTable *aux=NULL;aux=cont[id];
+    while(aux){
+        if(strcmp(aux->codProduto,codProduto)==0){
+           
+            tN=aux->arr[mes][0].quantidade;
+            
+            fN=aux->arr[mes][0].facturacao;
+            
+            tP=aux->arr[mes][1].quantidade;
+            
+            fP=aux->arr[mes][1].facturacao;
+            
+            break;
         }
-        return table;
+        aux=aux->next;
     }
+    
+    *totN=tN; *facN=fN; *totP=tP; *facP=fP;
+}
+char** get_codProducts_with_noBuyers(Contabilidade table){
+    char** r=(char**) malloc (sizeof(char*));
+    int i, rcount=0,j,e,k;
+    Field aux=NULL;
+    for(i=0; i<TABLE_SIZE; i++){
+        aux=table[i];
+        while(aux){
+            for(j=e=0;j<13 && e==0;j++){
+                for(k=e=0;k<2 && e==0;k++){
+                    if(aux->arr[j][k].quantidade>0){
+                        e=1;
+                    }
+                }
+            }
+            if(e==0){
+                r[rcount]=strdup2(aux->codProduto);
+                rcount++;
+                r=(char **) realloc(r,(rcount+1)*sizeof(char*));
+            }
+            aux=aux->next;
+        }                
+    }
+    r[rcount]=NULL;
+    return r;
+}
 
+Contabilidade insert_Contabilidade(Contabilidade table, char* codProduto, int mes, char prom, int qnt, float fac){
+    unsigned id = SuperFastHash(codProduto, strlen(codProduto));
+    int prom1=0, i;
+    
+    struct HashTable* aux=NULL;
+    
+    int found=0;
+if(prom=='P') prom1=1;    
+    if (!table[id]){
+        table[id] = (struct HashTable*) malloc (sizeof(struct HashTable));        
+        table[id]->codProduto=strdup2(codProduto);        
+        table[id]->arr = (struct Array**) malloc (sizeof(struct Array*)*13);
+                        for(i=0; i<13; i++){
+                            table[id]->arr[i]=(struct Array*) malloc ((sizeof(struct Array))*2);
+                          table[id]->arr[i][0].facturacao=0.0;
+                                table[id]->arr[i][0].quantidade=0;
+                                table[id]->arr[i][1].facturacao=0.0;
+                                table[id]->arr[i][1].quantidade=0;
+                        }
+          
+                            
+        table[id]->next=NULL;  
+        return table;
+    }else{       
+        aux=table[id];
+        while(aux){
+            if (strcmp(aux->codProduto, codProduto)==0){
+                
+              
+                    aux->arr[mes][prom1].facturacao+=fac;
+                    aux->arr[mes][prom1].quantidade+=qnt;
+                    
+                    found=1;
+                    break;
+            }
+            aux=aux->next;
+        }      
+        if (!found){
+            aux=NULL;
+            aux = (struct HashTable*) malloc (sizeof(struct HashTable));
+            
+                aux->arr = (struct Array**) malloc (sizeof(struct Array*)*13);
+                for(i=0; i<13; i++){
+                    aux->arr[i]=(struct Array*) malloc (sizeof(struct Array)*2);
+                    aux->arr[i][0].facturacao=0.0;
+                                aux->arr[i][0].quantidade=0;
+                                aux->arr[i][1].facturacao=0.0;
+                                aux->arr[i][1].quantidade=0;
+                }
+                aux->arr[mes][prom1].facturacao+=fac;
+                aux->arr[mes][prom1].quantidade+=qnt;
+           
+            aux->codProduto = strdup2(codProduto);
+            aux->next=table[id];
+            table[id]=aux;
+            return table;
+        }
+    }
+    return table;
 
+}

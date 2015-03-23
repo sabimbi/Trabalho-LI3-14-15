@@ -8,7 +8,19 @@
 #include "Compras.h"
 #include "CatalogoClientes.h"
 #define MAX 100
+#define PAGE_SIZE 20
+static char *strdup2(char *str){
+int len=0,i=0;
+char *aux=NULL;
+len=strlen(str)+1;
+aux=malloc(len*sizeof(char));
+for(i=0;str[i]!='\0';i++){
+    aux[i]=str[i];
+}
+aux[i]='\0';
 
+return aux;
+}
 char *trim(char *linha) {
     int len = 0;
     while (isspace((linha[0]))) {
@@ -26,29 +38,30 @@ char *trim(char *linha) {
 
 char** sep(CProdutos cat, CClientes c, char* line) {
     char** r = (char**) malloc(sizeof (char*)*6);
-    int j=0;
-    
-    char *aux=strdup(line);
-    
-   aux=strtok(aux," ");
-   while(aux ){
-       
-       r[j]=strdup(aux);
-       j++;
-    
-   aux=strtok(NULL," ");
-   
-   }
-   for(j=0;j<6;j++){
-       r[j]=trim(r[j]);
-   }
-   if(containsProduto(cat,r[0])==1 && containsCliente(c,r[4])==1 && ((strcmp(r[3],"P")==0) || (strcmp(r[3],"N")==0))){
-       return r;
-   }else{
-       
-    return NULL;
+    int j = 0;
+
+    char *aux = strdup2(line);
+
+    aux = strtok(aux, " ");
+    while (aux) {
+
+        r[j] = strdup2(aux);
+        j++;
+
+        aux = strtok(NULL, " ");
+
+    }
+    for (j = 0; j < 6; j++) {
+        r[j] = trim(r[j]);
+    }
+    if (containsProduto(cat, r[0]) == 1 && containsCliente(c, r[4]) == 1 && ((strcmp(r[3], "P") == 0) || (strcmp(r[3], "N") == 0))) {
+        return r;
+    } else {
+
+        return NULL;
+    }
 }
-}
+
 double get_ExecutionTime(clock_t Begin, clock_t End) {
     double r = ((double) End - Begin) / CLOCKS_PER_SEC;
     return r;
@@ -75,71 +88,261 @@ void Menu() {
 
 }
 
-void query3(char* codProduto, int mes) {
-    int n = 0, p = 0;
-
-    double r = 0.0;
-
-
-    printf("Total de Produtos Vendidos em Normal: %d\n", n);
-    printf("Total de Produtos Vendidos em Promoção: %d\n", p);
-    printf("Total Facturado: %f\n", r);
-
-}
-
-void query4(Contabilidade cont) {
-    char **prod = NULL;
-    int n = 0, i = 0;
-    Field g=NULL;
-
-    n=get_products_not_bought(cont);
-
-   
-    
-
-
-
-    printf("Nº de produtos que ninguem comprou: %d\n", n);
-
-
-
-
-
-
-
-
-}
-
-void query2() {
-    char** list=NULL;
-    int i = 0, count, e = 1;
-    char s;
-    while (e) {
-        for (count = 0; list[i] && count < 10 && e; i++, count++) {
-            printf("%s\n", list[i]);
-        }
-        e = 0;
-        s = getc(stdin);
-        if (s == '\n') e = 1;
-        if (s == 27) e = 0;
-
+void print_page(char** strArr, int n, int pageNumber) {
+    int e = 1, i = 0, max = 0;
+    system("clear");
+    if (pageNumber * PAGE_SIZE >= n) e = 0;
+    if (e) {
+        if (pageNumber != 0)i = pageNumber * PAGE_SIZE;
+        max = i + PAGE_SIZE;
     }
+
+    printf("-------------------------------------------------------------------\n");
+    if (i== max)printf("-------------------------------END---------------------------------\n");
+    for (; strArr[i] && i < max; ) {
+        
+        if( strArr[i + 1]==NULL){ 
+ printf("|%s                            |                         |\n", strArr[i]);
+        	i++;break;}else{
+        	 printf("|%s                            |                        %s|\n", strArr[i], strArr[i + 1]);
+        	i=i+2;
+        }
+    }
+    printf("-------------------------------------------------------------------\n");
+    printf("--PAGE %d--\n", pageNumber + 1);
+    printf("ESP - Exit   A - Last Page    D-Next Page\n");
 }
 
-int main(int argc, char** argv) {
-    char* line = NULL, *file1 = NULL, *file2 = NULL, *file3 = NULL;
-    char** lineInfo;
-    FILE* fp;
-    int i = 0;
-    CProdutos catalogop=NULL;
-    CClientes catalogoc=NULL;
-    Contabilidade contabilidade=NULL;
-    Compras compras=NULL;
+int list_size(char** list) {
+    int i;
+    for (i = 0; list[i]; i++);
+    return i;
+}
+void query14();
+void query13();
+void query12();
+void query11();
+void query10(Compras table,char **clients){
+   int size, e = 1, page = 0;
+    char opt;
+    char **freqbuyers=NULL;
+    freqbuyers=get_frequent_buyers(table, clients);
+    size = list_size(freqbuyers);
+
+    print_page(freqbuyers, size, 0);
+    while (e) {
+        opt = getchar();
+
+        opt = toupper(opt);
+
+        /*left*/
+        if (opt == 'A') {
+            if (page != 0) {
+                page--;
+                print_page(freqbuyers, size, page);
+            }
+        }
+       /* right*/
+        if (opt == 'D') {
+            if (page * PAGE_SIZE <= size)page++;
+            print_page(freqbuyers, size, page);
+        }
+        if (opt == 27) e = 0;
+        
+    }
+
+
+for(e=0;freqbuyers[e];e++){
+    printf("%s\n",freqbuyers[e]);
+} 
+
+}
+void query9();
+void printline(char *line){
+FILE* fp;
+fp=fopen("linhas","a+");
+fprintf(fp, "%s\n",line);
+fclose(fp);
+}
+
+void query8(Compras table,char* codProduto){
+    char **codN=NULL;
+    char **codP=NULL;
+    int i,a;
+    int totalN=0,totalP=0;
     
+    get_product_buyers(table, trim(codProduto),&codN, &totalN, &codP, &totalP);
+    printf("-----------------\n");
+    printf("|   Clientes N  |\n");
+    printf("-----------------\n");
+    for(i=0;codN[i] ;i++){
+    printf("|   ");
+        if(codN[i]!=NULL){
+        printf("  %s",codN[i]);
+        }
+    printf("     |\n");
+         
+    }
+    for(a=0;a<i;a++){
+        free(codN[a]);
+    }
+    free(codN);
+    printf("-----------------\n");
+    printf("|  Clientes P   |\n");
+    printf("-----------------\n");
+    for(i=0;codP[i] ;i++){
+    printf("|  ");
+        if(codP[i]!=NULL){
+            printf("   %s",codP[i]);
+        }
+          printf("     |\n");
+    }
+    printf("-----------------\n");
+    for(a=0;a<i;a++){
+        free(codP[a]);
+    }
+    free(codP);
+}
+
+void query7(Contabilidade table, int mes1, int mes2) {
+int totC=0;
+float totF=0.0;    
+get_total_byMonths(table, mes1, mes2,&totC, &totF);
+printf("Mes Intervalo: [%d,%d]\n",mes1,mes2);
+printf("Total Vendido: %d\n",totC );
+    printf("Total Facturado: %f\n",totF);
+}
+
+void query6(char **strArr) {
+    int size = list_size(strArr), e = 1, page = 0;
+    char opt;
+    print_page(strArr, size, 0);
+    while (e) {
+        opt = getchar();
+
+        opt = toupper(opt);
+
+        /*left*/
+        if (opt == 'A') {
+            if (page != 0) {
+                page--;
+                print_page(strArr, size, page);
+            }
+        }
+        /*right*/
+        if (opt == 'D') {
+            if (page * PAGE_SIZE <= size)page++;
+            print_page(strArr, size, page);
+        }
+        if (opt == 27) e = 0;
+        
+    }
+
+ 
+
+}
+void query5();
+
+void query4(char ** strArr) {
+    int size = list_size(strArr), e = 1, page = 0;
+    char opt;
+    printf("Nº de produto ninguem comprou: %d\n", size);
+    print_page(strArr, size, 0);
+    while (e) {
+        opt = getchar();
+
+        opt = toupper(opt);
+
+        /*left*/
+        if (opt == 65) {
+            if (page != 0) {
+                page--;
+                printf("Nº de produto ninguem comprou: %d\n", size);
+                print_page(strArr, size, page);
+            }
+        }
+        /*right*/
+        if (opt == 68) {
+            if (page * PAGE_SIZE <= size)page++;
+            printf("Nº de produto ninguem comprou: %d\n", size);
+            print_page(strArr, size, page);
+        }
+        if (opt == 27) e = 0;
+        
+    }
+
+    for (e = 0; e < size; e++) {
+        free(strArr[e]);
+    }
+  free(strArr);
+  
+
+
+}
+
+void query3(Contabilidade cnt, int mes, char* codProduto) {
+    int tVN = 0, tVP = 0;
+    float tFP = 0.0, tFN = 0.0;
+    get_NP_byMonth(cnt, codProduto, mes, &tVN, &tFN, &tVP, &tFP);
+
+    printf("--Modo Normal--\n");
+    printf("Total de Vendas: %d\n", tVN);
+    printf("Total Facturado: %f\n", tFN);
+    printf("--Modo Promoção--\n");
+    printf("Total de Vendas: %d\n", tVP);
+    printf("Total Facturado: %f\n", tFP);
+
+}
+
+void query2(char** strArr) {
+  int size = list_size(strArr), e = 1, page = 0;
+    char opt;
+    print_page(strArr, size, 0);
+    while (e) {
+        opt = getchar();
+
+        opt = toupper(opt);
+
+        /*left*/
+        if (opt == 'A') {
+            if (page != 0) {
+                page--;
+                print_page(strArr, size, page);
+            }
+        }
+        /*right*/
+        if (opt == 'D') {
+            if (page * PAGE_SIZE <= size)page++;
+            print_page(strArr, size, page);
+        }
+        if (opt == 27) e = 0;
+        
+    }
+
+ 
+
+
+}
+
+int main() {
+    char* line = NULL, *file1 = NULL, *file2 = NULL, *file3 = NULL;
+    char** lineInfo = NULL;
+    FILE* fp;
+    char **arr = NULL;
+    int i = 0, mes1 = 0, mes2 = 0,j=0,size=0;
+    char **clients=NULL;
+    int nl = 0, nv = 0;
+    char letter = ' ';
+    CProdutos catalogop = NULL;
+    CClientes catalogoc = NULL;
+    Contabilidade contabilidade = NULL;
+    Compras compras =NULL;
+
     clock_t begin, end;
     begin = clock();
     while (i != 15) {
         Menu();
+        
         if (scanf("%d", &i) <= 0) {
             printf("Opção inválida!\n");
         }
@@ -152,6 +355,7 @@ int main(int argc, char** argv) {
                 catalogoc = init_CatalogoCliente();
                 contabilidade = init_Contabilidade();
                 compras = init_Compras();
+
                 line = (char*) malloc(sizeof (char)*MAX);
                 file1 = (char*) malloc(sizeof (char)*MAX);
                 file2 = (char*) malloc(sizeof (char)*MAX);
@@ -165,11 +369,17 @@ int main(int argc, char** argv) {
                 file2 = trim(file2);
                 file3 = trim(file3);
 
-                if (strcmp(file1, "") == 0) {file1 = strdup("FichProdutos.txt");}
-                if (strcmp(file2, "") == 0) {file2 = strdup("FichClientes.txt");}
-                if (strcmp(file3, "") == 0) {file3 =strdup("Compras.txt");}
+                if (strcmp(file1, "") == 0) {
+                    file1 = strdup2("FichProdutos.txt");
+                }
+                if (strcmp(file2, "") == 0) {
+                    file2 = strdup2("FichClientes.txt");
+                }
+                if (strcmp(file3, "") == 0) {
+                    file3 = strdup2("Compras.txt");
+                }
 
-
+                printf("Ficheiro de Produtos: %s\n", file1);
                 fp = fopen(file1, "r");
                 begin = clock();
                 while ((line = fgets(line, MAX, fp))) {
@@ -177,9 +387,13 @@ int main(int argc, char** argv) {
                     contabilidade = insert_Contabilidade(contabilidade, line, 0, 'P', 0, 0.0);
 
                     catalogop = insert_CatalogoProduto(catalogop, line);
-                }
-                end = clock();
 
+                    nl++;
+                    nv++;
+                }
+                printf("Linhas lidas: %d\nLinhas validadas:%d\n", nl, nv);
+                end = clock();
+                nl = nv = 0;
                 printf("Tempo de Execução Catálogo de Produtos + Produtos Contabilidade: %fs \n", get_ExecutionTime(begin, end));
                 fclose(fp);
 
@@ -187,11 +401,16 @@ int main(int argc, char** argv) {
                 free(line);
                 line = (char*) malloc(sizeof (char)*MAX);
                 begin = clock();
+                printf("Ficheiro de Clientes: %s\n", file2);
                 fp = fopen(file2, "r");
                 while ((line = fgets(line, MAX, fp))) {
                     line = trim(line);
                     catalogoc = insert_CatalogoCliente(catalogoc, line);
+                    nl++;
+                    nv++;
                 }
+                printf("Linhas lidas: %d\nLinhas validadas:%d\n", nl, nv);
+                nl = nv = 0;
                 free(line);
                 free(file2);
                 line = (char*) malloc(sizeof (char)*MAX);
@@ -199,53 +418,150 @@ int main(int argc, char** argv) {
                 printf("Tempo de Execução Catálogo de Clientes: %fs \n", get_ExecutionTime(begin, end));
                 fclose(fp);
 
-
+                printf("Ficheiro de Compras: %s\n", file3);
                 fp = fopen(file3, "r");
+                lineInfo=NULL;
                 while ((line = fgets(line, MAX, fp))) {
                     line = trim(line);
-                    lineInfo=sep(catalogop, catalogoc, line);
-                    if (lineInfo !=NULL) {
-                        
+                    lineInfo = sep(catalogop, catalogoc, line);
+                    nl++;
+                    if (lineInfo != NULL) {
+                        nv++;
                         contabilidade = insert_Contabilidade(contabilidade, lineInfo[0], atoi(lineInfo[5]), lineInfo[3][0], atoi(lineInfo[2]), atof(lineInfo[1]) * atoi(lineInfo[2]));
-                        
-                        compras=insert_Compras(compras, lineInfo[0], lineInfo[4], atoi(lineInfo[2]), atoi(lineInfo[5]));
-                        
+                        /*printline(line);*/
+                        compras = insert_Compras(compras, lineInfo[0], lineInfo[4], atoi(lineInfo[2]), atoi(lineInfo[5]),lineInfo[3][0]);
+
                         for (i = 0; i < 5; i++) {
                             free(lineInfo[i]);
                         }
                         free(lineInfo);
                     }
                 }
-                
+                printf("Linhas lidas: %d\nLinhas validadas:%d\n", nl, nv);
+                nl = nv = 0;
                 free(line);
                 free(file3);
+                
                 end = clock();
                 printf("Tempo de Execução de Compras+Contabilidade: %fs \n", get_ExecutionTime(begin, end));
+
                 fclose(fp);
-                getClientes(compras,"HO2918");
+
                 break;
             }
             case 2:
             {
-                query2();
+                printf("Insira a letra: ");
+                letter = getchar();
+                arr = NULL;
+                arr = get_productList(catalogop, arr, toupper(letter));
+                if(arr!=NULL){query2(arr);
+                size=list_size(arr);
+                    for(j=0;j<size;j++){
+                    free(arr[j]);}
+                 free(arr);}else{
+                 	printf("Nenhum produto começado com a letra %c existe!\n",letter);
+                 }
                 break;
             }
             case 3:
             {
-                query3("HO2918", 6);
+                line = (char*) malloc(sizeof (char)*MAX);
+                printf("Insira o código de produto: ");
+                fgets(line, MAX, stdin);
+
+                printf("Mês pretendido: ");
+                scanf("%d", &mes1);
+                getchar();
+                query3(contabilidade, mes1, trim(line));
+                free(line);
                 break;
             }
             case 4:
             {
-                if(contabilidade){query4(contabilidade);}
+                if (contabilidade) {
+                    arr = NULL;
+                    
+                    arr = get_codProducts_with_noBuyers(contabilidade);
+                    query4(arr);
+                    size=list_size(arr);
+                    for(j=0;j<size;j++){
+                    free(arr[j]);
+                }
+                     free(arr);
+                }
                 break;
+            }
+            case 6:{
+                printf("Insira a letra: ");
+                letter = getchar();
+                arr=NULL;
+                arr=get_clientList(catalogoc, toupper(letter));
+
+                if(arr!=NULL){query6(arr);
+
+                size=list_size(arr);
+                
+
+                for(j=0;j<size;j++){
+                    free(arr[j]);
+                }
+ free(arr);}else{
+ 	printf("Nenhum cliente começado com a letra %c existe!\n",letter);
+ }
+
+                break;
+            }
+            case 7:
+            {
+                if (contabilidade) {
+                    printf("Mes 1: ");
+                    scanf("%d", &mes1);
+                    getchar();
+                    printf("Mes 2: ");
+                    scanf("%d", &mes2);
+                    query7(contabilidade, mes1, mes2);
+                }
+                break;
+            }
+            case 8:{
+                line = (char*) malloc(sizeof (char)*MAX);
+                printf("Insira o código de produto: ");
+                fgets(line, MAX, stdin);
+                
+                if(compras)query8(compras,line);
+                free(line);
+                break;
+            }
+            case 10:{
+                clients=NULL;
+                clients=get_all_clients(catalogoc);
+                query10(compras,clients);
+                size=list_size(clients);
+                
+
+                for(j=0;j<size;j++){
+                    free(clients[j]);
+                }
+ free(clients);
+                break;
+            }
+            case 15:{
+            	break;
+            }
+            default:{
+            	printf("Opção inválida!\n");
+            	break;
             }
         }
     }
     /*
      */
     return (EXIT_SUCCESS);
-}
+
+    }
+
+
 
 
 

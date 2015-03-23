@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include<stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -14,31 +14,41 @@
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 #endif
-#define TABLE_SIZE 10001
-#define TABLE_SIZE1 30
+#define TABLE_SIZE 150001
+#define TABLE_SIZE1 1000
 
-typedef struct HashTable1{
+struct HashTable1 {
     char* codCliente;
-    int quantidade;
-    int mes[12];
+    int mes[13];
+    
+    int np[2];
     struct HashTable1* next;
-}**Ht1;
+};
 
-typedef struct HashTable{
+struct HashTable {
     char* codProduto;
     Ht1 info;
+    int mes[13];
     struct HashTable* next;
-}**Ht;
+};
 
+static char *strdup2(char *str) {
+    int len = 0, i = 0;
+    char *aux = NULL;
+    len = strlen(str) + 1;
+    aux = malloc(len * sizeof (char));
+    for (i = 0; str[i] != '\0'; i++) {
+        aux[i] = str[i];
+    }
+    aux[i] = '\0';
 
-static Ht set_Prod(Ht table,char* codProduto, char* codCliente, int id, int id1, int quantidade, int mes){
-    
-    return table;
+    return aux;
 }
 
-static uint32_t SuperFastHash (const char * data, int len) {
-uint32_t hash = len, tmp;
-int rem;
+/*Funçoes Clientes*/
+static uint32_t SuperFastHash(const char * data, int len) {
+    uint32_t hash = len, tmp;
+    int rem;
 
     if (len <= 0 || data == NULL) return 0;
 
@@ -46,28 +56,28 @@ int rem;
     len >>= 2;
 
     /* Main loop */
-    for (;len > 0; len--) {
-        hash  += get16bits (data);
-        tmp    = (get16bits (data+2) << 11) ^ hash;
-        hash   = (hash << 16) ^ tmp;
-        data  += 2*sizeof (uint16_t);
-        hash  += hash >> 11;
+    for (; len > 0; len--) {
+        hash += get16bits(data);
+        tmp = (get16bits(data + 2) << 11) ^ hash;
+        hash = (hash << 16) ^ tmp;
+        data += 2 * sizeof (uint16_t);
+        hash += hash >> 11;
     }
 
     /* Handle end cases */
     switch (rem) {
-        case 3: hash += get16bits (data);
-                hash ^= hash << 16;
-                hash ^= ((signed char)data[sizeof (uint16_t)]) << 18;
-                hash += hash >> 11;
-                break;
-        case 2: hash += get16bits (data);
-                hash ^= hash << 11;
-                hash += hash >> 17;
-                break;
-        case 1: hash += (signed char)*data;
-                hash ^= hash << 10;
-                hash += hash >> 1;
+        case 3: hash += get16bits(data);
+            hash ^= hash << 16;
+            hash ^= ((signed char) data[sizeof (uint16_t)]) << 18;
+            hash += hash >> 11;
+            break;
+        case 2: hash += get16bits(data);
+            hash ^= hash << 11;
+            hash += hash >> 17;
+            break;
+        case 1: hash += (signed char) *data;
+            hash ^= hash << 10;
+            hash += hash >> 1;
     }
 
     /* Force "avalanching" of final 127 bits */
@@ -81,136 +91,227 @@ int rem;
     return hash;
 }
 
-/* Funcões Públicas*/
-/*
+/*Funçoes Publicas*/
 
-char** get_produtos_sem_compras(){
-    char ** r = (char**) malloc (sizeof(char*));
-    struct HashTable* aux;
-    int i, j=0;
-    for(i=0;i<TABLE_SIZE; i++){
-        aux=table[i];    
-        while(aux){
-            if(table[i]->codProduto && !table[i]->info){
-                r=strdup(table[i]->codProduto);
-                j++;
-                r = (char**) realloc (r, sizeof(char*)*(j+1));
+char** get_frequent_buyers(Compras table, char** clientList) {
+    char** r = (char**) malloc(sizeof (char*));
+    unsigned id = 0;
+    int clic, i, j, k, e = 1, rcount = 0, op;
+    int comp[13];
+    struct HashTable* prod = NULL;
+    struct HashTable1* cli = NULL;
+    for (clic = 0; clientList[clic]; clic++) {
+        id = (unsigned) SuperFastHash(clientList[clic], strlen(clientList[clic])) % TABLE_SIZE1;
+        for (i = 1; i < 13; i++)comp[i] = 0;
+        for (i = 0; i < TABLE_SIZE; i++) {
+            prod = table[i];
+            if (prod != NULL) {
+                while (prod) {
+                    cli = prod->info[id];
+                    e=1;
+                    while (cli != NULL && e) {
+                        if (strcmp(cli->codCliente, clientList[clic]) == 0) {
+                            for (j = 1; j < 13; j++) {
+                                comp[j] += cli->mes[j];
+                            }
+
+                            e = 0;
+                        }
+                        cli = cli->next;
+                    }
+                    prod = prod->next;
+                }
             }
-        aux=aux->next;
+
+        }
+        for(i=e=1;i<13&& e ;i++){
+            if(comp[i]==0)e=0;
+        }
+         if(e==1){
+        for (k = op = 0; k < rcount && op; k++) {
+            if (strcmp(r[k], clientList[clic]) == 0) op = 1;
+        }
+        if (op == 0) {
+            
+            r[rcount] = strdup2(clientList[clic]);
+
+            rcount++;
+            r = (char**) realloc(r, sizeof (char*)*(rcount + 1));
+        }
+    } 
+
+
+}
+
+r[rcount] = NULL;
+return r;
+}
+
+void get_product_buyers(Compras table, char* codProduto, char*** codN, int* totalN, char*** codP, int* totalP) {
+    char** cN = (char**) malloc(sizeof (char*));
+    char** cP = (char**) malloc(sizeof (char*));
+    unsigned id = (unsigned) SuperFastHash(codProduto, strlen(codProduto)) % TABLE_SIZE;
+    int i, ntN = 0, ntP = 0, cNcount = 0, cPcount = 0;
+    struct HashTable* prod = NULL;
+    
+    struct HashTable1* aux = NULL;
+    prod = table[id];
+    while (prod) {
+        if (strcmp(prod->codProduto, codProduto) == 0) {
+            break;
+        } else {
+            prod = prod->next;
         }
     }
-    return r;
-}
-int get_total_produtos_sem_compras(){
-    int r=0, raux;
-    int i, j, e=1;
-    struct HashTable* aux;
-    for (i=0; i<TABLE_SIZE; i++){
-        aux=table[i];
-        while(aux && e){
-            if (aux->info) r++;
-        aux=aux->next;
-        }   
+    for (i = 0; i < TABLE_SIZE1; i++) {
+        if (prod != NULL) {
+            aux = prod->info[i];
+            if (aux != NULL) {
+
+                while (aux) {
+                    if (aux->np[0] == 1) {
+                        cN[cNcount] = strdup2(aux->codCliente);
+
+                        cNcount++;
+                        cN = (char**) realloc(cN, sizeof (char*)*(cNcount));
+                        ntN += aux->np[0];
+                    }
+                    if (aux->np[1] == 1) {
+                        cP[cPcount] = strdup2(aux->codCliente);
+
+                        cPcount++;
+                        cP = (char**) realloc(cP, sizeof (char*)*(cPcount));
+                        ntP += aux->np[1];
+                    }
+
+                    aux = aux->next;
+                }
+            }
+        }
     }
-    return r;
-}
-*/
-char ** getClientes(Compras compras,char *codProduto){
-unsigned id = (unsigned)SuperFastHash(codProduto, strlen(codProduto))%TABLE_SIZE;
-int i,j;
-struct HashTable*aux1=NULL;
-struct HashTable1 *aux2=NULL;
-char **clientes=NULL;
-clientes=(char ** ) malloc(200000*sizeof(char *));
-aux1=compras[id];
-while(aux1){
-if(strcmp(aux1->codProduto,codProduto)==0){
-for(i=j=0;i<TABLE_SIZE1;i++){
-	aux2=aux1->info[i];
-	while(aux2){
-		clientes[j]=strdup(aux2->codCliente);
-		j++;
-	aux2=aux2->next;
-	}
-}
-break;
-}else{
-	aux1=aux1->next;
-
-}
-}
-clientes[j]=NULL;
-return clientes;
+    cN[cNcount] = NULL;
+    cP[cPcount] = NULL;
+    *codN = cN;
+    *totalN = ntN;
+    *codP = cP;
+    *totalP = ntP;
 }
 
-Compras init_Compras(){
+Compras init_Compras() {
     int i;
     Compras table;
-    table = (struct HashTable**) malloc (sizeof(struct HashTable*)*TABLE_SIZE);
-    for (i=0; i<TABLE_SIZE; i++){
-        table[i]=NULL;
+    table = (struct HashTable**) malloc(sizeof (struct HashTable*)*TABLE_SIZE);
+    for (i = 0; i < TABLE_SIZE; i++) {
+        table[i] = NULL;
     }
     return table;
 }
-Compras insert_Compras(Compras table, char* codProduto, char* codCliente, int quant, int mes){
-    unsigned id = (unsigned)SuperFastHash(codProduto, strlen(codProduto))%TABLE_SIZE;
-    unsigned id1 = (unsigned)SuperFastHash(codCliente, strlen(codCliente))%TABLE_SIZE1;
-    struct HashTable* aux=NULL;
-    struct HashTable1* aux1=NULL;
-    int found=0, found1=0, i=0;;
-    if (!table[id]){
-        table[id] = (struct HashTable*) malloc (sizeof(struct HashTable));
-        table[id]->info=(struct HashTable1**) malloc (sizeof(struct HashTable1*)*TABLE_SIZE1);
-        for(i=0; i<TABLE_SIZE1; i++){
-            table[id]->info[i]=NULL;
+
+static Ht1 insert_ht(Ht1 table, char* codCliente, int quant, int mes, int np) {
+    unsigned id = (unsigned) SuperFastHash(codCliente, strlen(codCliente)) % TABLE_SIZE1;
+    struct HashTable1* aux = NULL;
+    int found = 0, i;
+    if (!table[id]) {
+        i = 0;
+        aux = (struct HashTable1*) malloc(sizeof (struct HashTable1));
+        aux->codCliente = strdup2(codCliente);
+        while (i < 13) {
+            aux->mes[i] = 0;
+            i++;
         }
-        table[id]->codProduto=strdup(codProduto);       
-        table[id]->next=NULL;
-    }else{
-        aux=table[id];
-        while(aux){
-            if (strcmp(aux->codProduto, codProduto)==0){
-                aux->codProduto=strdup(codProduto);
-                found=1;
+        aux->mes[mes] += quant;
+        aux->np[0] = 0;
+        aux->np[1] = 0;
+        aux->np[np] = 1;
+        aux->next = NULL;
+        table[id] = aux;
+        return table;
+    } else {
+        aux = table[id];
+        while (aux) {
+            if (strcmp(aux->codCliente, codCliente) == 0) {
+
+                aux->mes[mes] += quant;
+                aux->np[np] = 1;
+                found = 1;
             }
-            aux=aux->next;
+            aux = aux->next;
         }
-        if (!found){
-            aux=NULL; aux = (struct HashTable*) malloc (sizeof(struct HashTable));
-            table[id]->info=(struct HashTable1**) malloc (sizeof(struct HashTable1*)*TABLE_SIZE1);
-            for(i=0; i<TABLE_SIZE1; i++){
-                table[id]->info[i]=NULL;
+        if (!found) {
+            i = 0;
+            aux = NULL;
+            aux = (struct HashTable1*) malloc(sizeof (struct HashTable1));
+            aux->codCliente = strdup2(codCliente);
+
+            while (i < 13) {
+                aux->mes[i] = 0;
+                i++;
             }
-            aux->codProduto = strdup(codProduto);
-            aux->next=table[id];
-            table[id]=aux;
+            aux->mes[mes] += quant;
+            aux->np[0] = 0;
+            aux->np[1] = 0;
+            aux->np[np] = 1;
+            aux->next = table[id];
+
+            table[id] = aux;
+
         }
     }
-    if (!table[id]->info[id1]){
-        table[id]->info[id1] = (struct HashTable1*) malloc (sizeof(struct HashTable1));
-        table[id]->info[id1]->codCliente=strdup(codCliente);
-        table[id]->info[id1]->mes[mes] = 1;
-        table[id]->info[id1]->quantidade = quant;
-        table[id]->info[id1]->next=NULL;
-    }else{
-        aux1=table[id]->info[id1];
-        while(aux1){
-            if (strcmp(aux1->codCliente, codCliente)==0){
-                aux1->codCliente=strdup(codCliente);
-                aux1->mes[mes]=1;
-                aux1->quantidade+=quant;
-                found=1;
-            }
-            aux1=aux1->next;
-        }
-        if(!found){
-            aux1=NULL; aux1 = (struct HashTable1*) malloc (sizeof(struct HashTable1));
-            aux1->codCliente= strdup(codCliente);
-            aux1->mes[mes]=1;
-            aux1->quantidade=quant;
-            aux1->next=table[id]->info[id];
-            table[id]->info[id]=aux1;
-        }        
-    } 
     return table;
 }
+
+Compras insert_Compras(Compras table, char* codProduto, char* codCliente, int quant, int mes, char np) {
+    unsigned id = (unsigned) SuperFastHash(codProduto, strlen(codProduto)) % TABLE_SIZE;
+    struct HashTable* aux = NULL;
+    int found = 0, i = 0, npa = 0;
+    if (np == 'P') npa = 1;
+    if (!table[id]) {
+        table[id] = (struct HashTable*) malloc(sizeof (struct HashTable));
+        table[id]->info = (struct HashTable1**) malloc(sizeof (struct HashTable1*)*TABLE_SIZE1);
+        table[id]->codProduto = strdup2(codProduto);
+
+        for (i = 0; i < TABLE_SIZE1; i++) {
+            table[id]->info[i] = NULL;
+        }
+        table[id]->info = insert_ht(table[id]->info, codCliente, quant, mes, npa);
+        for (i = 0; i < 13; i++) {
+            table[id]->mes[i] = 0;
+        }
+        table[id]->mes[mes]++;
+        table[id]->next = NULL;
+
+        return table;
+    } else {
+
+        aux = table[id];
+
+        while (aux) {
+            if (strcmp(aux->codProduto, codProduto) == 0) {
+
+                aux->info = insert_ht(aux->info, codCliente, quant, mes, npa);
+                aux->mes[mes]++;
+                found = 1;
+                break;
+            }
+            aux = aux->next;
+        }
+        if (!found) {
+            aux = NULL;
+            aux = (struct HashTable*) malloc(sizeof (struct HashTable));
+            aux->info = (struct HashTable1**) malloc(sizeof (struct HashTable1*)*TABLE_SIZE1);
+            for (i = 0; i < TABLE_SIZE1; i++) {
+                aux->info[i] = NULL;
+            }
+            for (i = 0; i < 13; i++) {
+                aux->mes[i] = 0;
+            }
+            aux->mes[mes]++;
+            aux->info = insert_ht(aux->info, codCliente, quant, mes, npa);
+            aux->codProduto = strdup2(codProduto);
+            aux->next = table[id];
+            table[id] = aux;
+        }
+    }
+    return table;
+}
+

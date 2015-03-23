@@ -18,4 +18,5 @@ main.o: main.c Contabilidade.h Compras.h CatalogoProdutos.h CatalogoClientes.h
 
 clean:
 	-rm -f *.o
+	-rm -f linhas
 	-rm -f GESTHIPER
